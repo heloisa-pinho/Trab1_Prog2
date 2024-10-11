@@ -1,80 +1,49 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
+#include "lbp.h"
+#include <unistd.h>
 
-unsigned char calculaLBP(unsigned char *image, int width, int height, int x, int y)
+int main(int argc, char *argv[])
 {
-    int offsets[8][2] = {{x - 1, y - 1}, {x, y - 1}, {x + 1, y - 1}, {x - 1, y}, {x + 1, y}, {x - 1, y + 1}, {x, y + 1}, {x + 1, y + 1}};
-    unsigned char center = image[y * width + x];
-    unsigned char lbpValue = 0;
+    int opt;
+    const char *diretorio_base = NULL;
+    const char *imagem_teste = NULL;
+    const char *imagem_saida = NULL;
+    int max_value = 255;
 
-    for (int i = 0; i < 8; i++)
+    // Processa os argumentos da linha de comando
+    while ((opt = getopt(argc, argv, "i:d:o:")) != -1)
     {
-        int neighborX = offsets[i][0];
-        int neighborY = offsets[i][1];
-
-        if (image[neighborY * width + neighborX] >= center)
-            lbpValue = lbpValue + (1 << i);
-    }
-
-    return lbpValue;
-}
-
-int main()
-{
-    FILE *inputFile = fopen("Apuleia5.pgm", "rb");
-    FILE *outputFile = fopen("output.pgm", "wb");
-    FILE *lbpOutputFile = fopen("output_lbp2p2.pgm", "wb");
-
-    if (inputFile == NULL || outputFile == NULL)
-    {
-        printf("Falha ao abrir os arquivos.\n");
-        return 1;
-    }
-
-    char image_type[3];
-    int width, height, max_value;
-
-    fscanf(inputFile, "%s", image_type);
-    fscanf(inputFile, "%d %d", &width, &height);
-    fscanf(inputFile, "%d", &max_value);
-
-    unsigned char *image_data = (unsigned char *)malloc(width * height * sizeof(unsigned char));
-    unsigned char *image_datalbp = (unsigned char *)malloc((width) * (height) * sizeof(unsigned char));
-    int total_pixels = width * height;
-    int i;
-
-    fprintf(outputFile, "%s\n%d %d\n%d\n", image_type, width, height, max_value);
-    fprintf(lbpOutputFile, "%s\n%d %d\n%d\n", image_type, (width), (height), max_value);
-
-    fgetc(inputFile);
-
-    for (i = 0; i < total_pixels; i++)
-    {
-        fread(&image_data[i], sizeof(unsigned char), 1, inputFile);
-    }
-
-    fprintf(outputFile, "%s", image_data);
-
-    int x, y;
-
-    for (y = 1; y < height; y++)
-    {
-        for (x = 1; x < width; x++)
+        switch (opt)
         {
-            image_datalbp[y * width + x] = calculaLBP(image_data, width, height, x, y);
+        case 'i':
+            imagem_teste = optarg; // Recebe o nome da imagem de entrada para gerar o LBP
+            break;
+        case 'd':
+            diretorio_base = optarg; // Recebe o diretório base para comparação
+            break;
+        case 'o':
+            imagem_saida = optarg; // Recebe o nome da imagem de saída
+            break;
+        default:
+            return 1;
         }
     }
 
-    fwrite(image_datalbp, sizeof(unsigned char), (width) * (height), lbpOutputFile);
-
-    free(image_datalbp);
-    free(image_data);
-    fclose(inputFile);
-    fclose(outputFile);
-    fclose(lbpOutputFile);
-
-    printf("Imagem copiada sem branco e LBP geradas com sucesso.\n");
+    // Verifica se as opções foram fornecidas corretamente
+    if (diretorio_base && imagem_teste)
+    {
+        abre_diretorio(diretorio_base);
+        compara_imagem_teste(imagem_teste, max_value);
+    }
+    else if (imagem_teste && imagem_saida)
+    {
+        gerar_imagem_lbp(imagem_teste, imagem_saida);
+    }
+    else
+    {
+        return 1;
+    }
 
     return 0;
 }
